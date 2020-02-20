@@ -52,7 +52,7 @@ namespace JVF
                 {
                     auto console_sink = std::make_shared<stdout_color_sink_mt>();
                     console_sink->set_level( spdlog::level::from_str( conf.console_log_level ) );
-                    console_sink->set_pattern( "[%^%l%$] %v" );
+                    console_sink->set_pattern( "[%L] [%Y %T][%t]%v" );
                     sinks_list.emplace_back( std::forward<spdlog::sink_ptr>( console_sink ) );
                 }
 
@@ -62,6 +62,7 @@ namespace JVF
                                                                                   conf.file_size,
                                                                                   conf.managing_file_amount );
                     rotating_sink->set_level( spdlog::level::from_str( conf.file_log_level ) );
+                    rotating_sink->set_pattern( "[%L] [%Y %T][%t]%v" );
                     sinks_list.emplace_back( std::forward<spdlog::sink_ptr>( rotating_sink ) );
                 }
 
@@ -82,6 +83,11 @@ namespace JVF
 
 #define LOGGER() JVF::Logger::GetInstance()
 
-#define LOG_E(...) { LOGGER().GetLogger()->error(...); }
+#define LOG_T(fmt, ...) if (nullptr != LOGGER().GetLogger()) { LOGGER().GetLogger()->trace("[{}@{}] "##fmt, __FUNCTION__, __LINE__, __VA_ARGS__); } 
+#define LOG_I(fmt, ...) if (nullptr != LOGGER().GetLogger()) { LOGGER().GetLogger()->info("[{}@{}] "##fmt, __FUNCTION__, __LINE__, __VA_ARGS__); } 
+#define LOG_D(fmt, ...) if (nullptr != LOGGER().GetLogger()) { LOGGER().GetLogger()->debug("[{}@{}] "##fmt, __FUNCTION__, __LINE__, __VA_ARGS__); } 
+#define LOG_W(fmt, ...) if (nullptr != LOGGER().GetLogger()) { LOGGER().GetLogger()->warn("[{}@{}] "##fmt, __FUNCTION__, __LINE__, __VA_ARGS__); } 
+#define LOG_E(fmt, ...) if (nullptr != LOGGER().GetLogger()) { LOGGER().GetLogger()->error("[{}@{}] "##fmt, __FUNCTION__, __LINE__, __VA_ARGS__); } 
+#define LOG_C(fmt, ...) if (nullptr != LOGGER().GetLogger()) { LOGGER().GetLogger()->critical("[{}@{}] "##fmt, __FUNCTION__, __LINE__, __VA_ARGS__); } 
 
 #endif
