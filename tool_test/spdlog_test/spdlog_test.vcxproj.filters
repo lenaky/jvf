@@ -23,7 +23,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\..\util\spdlog_warp.h">
+    <ClInclude Include="..\..\util\spdlog_wrap.h">
       <Filter>Util</Filter>
     </ClInclude>
   </ItemGroup>

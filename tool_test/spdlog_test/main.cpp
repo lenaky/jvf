@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
 
-#include "util/spdlog_warp.h"
+#include "util/spdlog_wrap.h"
 
 int main()
 {
