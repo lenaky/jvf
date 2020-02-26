@@ -11,10 +11,12 @@ extern "C"
 #include <libavformat/avformat.h>
 #include <libavformat/avio.h>
 #include <libavutil/imgutils.h>
+#include <libswscale/swscale.h>
 
 #pragma comment(lib, "avcodec.lib")
 #pragma comment(lib, "avformat.lib")
 #pragma comment(lib, "avutil.lib")
+#pragma comment(lib, "swscale.lib")
 
 }
 
@@ -84,12 +86,7 @@ void TestRTSPClient()
         LOG_E( "could not allocate video frame" );
         return;
     }
-    AVFrame* av_frm_rgb = av_frame_alloc();
-    if( !av_frm_rgb )
-    {
-        LOG_E( "could not allocate video frame" );
-        return;
-    }
+
     if( 0 > avcodec_open2( v_dec_ctx, codec, NULL ) )
     {
         LOG_E( "could not open codec" );
@@ -126,27 +123,66 @@ void TestRTSPClient()
 
                 if( v_dec_ctx->width > 0 && v_dec_ctx->height > 0 )
                 {
-                    auto pix_fmt = AV_PIX_FMT_BGR24;
-
-                    auto pic_size = av_image_get_buffer_size( v_dec_ctx->pix_fmt, 
-                                                              v_dec_ctx->width, 
-                                                              v_dec_ctx->height, 
-                                                              16 );
-                    uint8_t* buffer = (uint8_t*)av_malloc( pic_size );
-                    auto number_of_written_bytes = av_image_copy_to_buffer( buffer, pic_size,
-                                                                            av_frm->data, av_frm->linesize,
-                                                                            v_dec_ctx->pix_fmt, v_dec_ctx->width, v_dec_ctx->height, 1 );
-                    std::ofstream ofs( "./test.yuv", std::ios::binary );
-                    if( ofs )
+                    auto pix_fmt = AV_PIX_FMT_RGB24;
+                    static struct SwsContext* sws_ctx = sws_getContext( v_dec_ctx->width, 
+                                                                        v_dec_ctx->height, 
+                                                                        v_dec_ctx->pix_fmt,
+                                                                        v_dec_ctx->width,
+                                                                        v_dec_ctx->height, 
+                                                                        pix_fmt,
+                                                                        SWS_BILINEAR, NULL, NULL, NULL );
+                    if( sws_ctx != NULL )
                     {
-                        ofs.write( (const char*)buffer, number_of_written_bytes );
-                        ofs.close();
-                    }
+                        auto pic_size = av_image_get_buffer_size( pix_fmt,
+                                                                  v_dec_ctx->width,
+                                                                  v_dec_ctx->height,
+                                                                  16 );
+                        /* original data copy from av_frame.
+                        auto pic_size = av_image_get_buffer_size( v_dec_ctx->pix_fmt,
+                                                                  v_dec_ctx->width,
+                                                                  v_dec_ctx->height,
+                                                                  16 );
+                        uint8_t* buffer = ( uint8_t* )av_malloc( pic_size );
+                        auto number_of_written_bytes = av_image_copy_to_buffer( buffer, pic_size,
+                                                                                av_frm->data, av_frm->linesize,
+                                                                                v_dec_ctx->pix_fmt, v_dec_ctx->width, v_dec_ctx->height, 1 );
+                        std::ofstream ofs( "./test.yuv", std::ios::binary );
+                        if( ofs )
+                        {
+                            ofs.write( ( const char* )buffer, number_of_written_bytes );
+                            ofs.close();
+                        }
+                        av_free( buffer );
+                        */
 
-                    av_free(buffer);
-                    if( number_of_written_bytes < 0 )
-                    {
-                        LOG_E( "could not copy image to buffer" );
+                        // convert img from yuv420p which is default decoded image to rgb24.
+                        uint8_t *dst_data[ 4 ];
+                        int dst_linesize[ 4 ];
+                        int alloc_size = 0;
+                        if( ( alloc_size = av_image_alloc( dst_data, dst_linesize,
+                            v_dec_ctx->width, v_dec_ctx->height, pix_fmt, 1 ) ) < 0 )
+                        {
+                            LOG_E( "could not alloc image buffer" );
+                            exit( 0 );
+                        }
+
+                        sws_scale( sws_ctx,
+                            ( const uint8_t* const* )av_frm->data,
+                                   av_frm->linesize,
+                                   0,
+                                   v_dec_ctx->height,
+                                   dst_data,
+                                   dst_linesize );
+
+                        std::ofstream ofs( "./test.raw", std::ios::binary );
+                        if( ofs )
+                        {
+                            ofs.write( (const char*)dst_data[ 0 ], alloc_size );
+                            ofs.close();
+                        }
+
+                        av_freep( &dst_data[0] );
+                        sws_freeContext( sws_ctx );
                     }
                 }
 
@@ -157,7 +193,12 @@ void TestRTSPClient()
         av_init_packet( pkt );
     }
 
+    if( fmt_ctx )
+        avformat_close_input( &fmt_ctx );
+    avcodec_free_context( &v_dec_ctx );
+    av_frame_free( &av_frm );
     av_read_pause( fmt_ctx );
+    av_packet_free( &pkt );
 }
 
 int main()
