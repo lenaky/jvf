@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "spdlog_test", "spdlog_test\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ffmpeg_test", "ffmpeg_test\ffmpeg_test.vcxproj", "{F58515AD-923D-4E9A-9E7D-A29DF38E9B70}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "protobuf_test", "protobuf_test\protobuf_test.vcxproj", "{F9E53E10-60A1-4D66-984A-04AB304D3D54}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -27,6 +29,12 @@ Global
 		{F58515AD-923D-4E9A-9E7D-A29DF38E9B70}.Release|x64.ActiveCfg = Release|x64
 		{F58515AD-923D-4E9A-9E7D-A29DF38E9B70}.Release|x64.Build.0 = Release|x64
 		{F58515AD-923D-4E9A-9E7D-A29DF38E9B70}.Release|x86.ActiveCfg = Release|x64
+		{F9E53E10-60A1-4D66-984A-04AB304D3D54}.Debug|x64.ActiveCfg = Debug|x64
+		{F9E53E10-60A1-4D66-984A-04AB304D3D54}.Debug|x64.Build.0 = Debug|x64
+		{F9E53E10-60A1-4D66-984A-04AB304D3D54}.Debug|x86.ActiveCfg = Debug|x64
+		{F9E53E10-60A1-4D66-984A-04AB304D3D54}.Release|x64.ActiveCfg = Release|x64
+		{F9E53E10-60A1-4D66-984A-04AB304D3D54}.Release|x64.Build.0 = Release|x64
+		{F9E53E10-60A1-4D66-984A-04AB304D3D54}.Release|x86.ActiveCfg = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
