@@ -1,4 +1,3 @@
-#include <iostream>
 #include "util/spdlog_wrap.h"
 #include "example.pb.h"
 #include "pbjson.hpp"
