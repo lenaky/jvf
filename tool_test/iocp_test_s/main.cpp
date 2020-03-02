@@ -66,7 +66,7 @@ public:
     {
         SOCKADDR_IN server_addr;
         server_addr.sin_family = AF_INET;
-        server_addr.sin_port = _port;
+        server_addr.sin_port = htons( _port );
         inet_pton( AF_INET, _ip.c_str(), &server_addr.sin_addr );
         auto ret = bind( _listen_sock, ( SOCKADDR* )&server_addr, sizeof( SOCKADDR_IN ) );
         if( 0 != ret )
@@ -127,11 +127,13 @@ public:
         while( _accept_run )
         {
             ClientInfo cli_info;
+            LOG_I( "Wait for accept..." );
             cli_info.client_sock = accept( _listen_sock, ( SOCKADDR* )&client_addr, &addr_len );
             if( INVALID_SOCKET == cli_info.client_sock )
             {
                 continue;
             }
+            LOG_I( "Wait for accept...ok" );
 
             {
                 auto ret = CreateIoCompletionPort( ( HANDLE )cli_info.client_sock,
@@ -184,11 +186,13 @@ public:
 
             while( _worker_run )
             {
+                LOG_I( "Checking CompletionPort..." );
                 BOOL ret = GetQueuedCompletionStatus( _iocp_handle,
                                                       &io_size,
                                                       ( PULONG_PTR )&cli_info,
                                                       &lpoverlapped,
                                                       INFINITE );
+                LOG_I( "Checking CompletionPort...ok" );
                 if( TRUE == ret && 0 == io_size && NULL == lpoverlapped )
                 {
                     _worker_run = false;
