@@ -1,5 +1,11 @@
 #include "util/spdlog_wrap.h"
 
+#ifdef _DEBUG
+#pragma comment(lib, "libprotobufd.lib")
+#else
+#pragma comment(lib, "libprotobuf.lib")
+#endif
+
 #pragma comment(lib, "ws2_32")
 #include <winsock2.h>
 #include <Ws2tcpip.h>
@@ -7,27 +13,65 @@
 #include <thread>
 #include <vector>
 
-enum PacketDirection : int
+#define IOCP_BUFFER_SIZE 1024 * 8 // 8k
+
+class IOCPBuffer : public WSAOVERLAPPED
 {
-    PACKET_DIRECTION_IN = 0, // recv
-    PACKET_DIRECTION_OUT = 1 // send
+public:
+    using byte = char;
+
+    enum class PacketDirection : unsigned char
+    {
+        PacketDirection_None = 0,
+        PacketDirection_Recv = 1,
+        PacketDirection_Send = 2
+    };
+
+public:
+    IOCPBuffer( unsigned int buffer_size, 
+                PacketDirection direction ) : _buffer_size( buffer_size ), 
+                                              _direction( direction )
+    {
+        _buffer = new byte[ buffer_size ];
+    }
+
+    virtual ~IOCPBuffer()
+    {
+        if( nullptr != _buffer )
+            delete[] _buffer;
+    }
+
+    WSABUF& WsaBuf() { return _wsa_buffer; }
+    byte* Buffer() { return _buffer; }
+
+    bool CompareDirection( PacketDirection dir )
+    {
+        return dir == _direction;
+    }
+
+    void SetDirection( PacketDirection dir ) { _direction = dir; }
+
+private:
+    byte* _buffer = nullptr;
+    size_t _buffer_size = 0;
+    WSABUF _wsa_buffer{ 0 };
+    PacketDirection _direction = PacketDirection::PacketDirection_None;
 };
 
-struct OverlappedEx
+struct client_session
 {
-    WSAOVERLAPPED overlapped = { 0 };
-    WSABUF overlapped_buffer = { 0 };
-    char data_buffer[ 1024 ] = { 0, };
-    PacketDirection direction = PACKET_DIRECTION_IN;
-    
+    SOCKET client_socket = INVALID_SOCKET;
 };
 
-struct ClientInfo
+struct _client_socket
 {
-    SOCKET client_sock = INVALID_SOCKET;
-    OverlappedEx in;
-    OverlappedEx out;
-};
+    client_session* operator()()
+    {
+        return new client_session;
+    }
+} client_socket;
+
+using Direction = IOCPBuffer::PacketDirection;
 
 class IOCPServer
 {
@@ -124,56 +168,43 @@ public:
         SOCKADDR_IN client_addr;
         int addr_len = sizeof( SOCKADDR_IN );
 
+        // 쓰레드마다 버퍼 필요할듯..
+        IOCPBuffer in_buffer( IOCP_BUFFER_SIZE, Direction::PacketDirection_Recv );
+
         while( _accept_run )
         {
-            ClientInfo* cli_info = new ClientInfo;
+            auto session = client_socket();
             LOG_I( "Wait for accept..." );
-            cli_info->client_sock = accept( _listen_sock, ( SOCKADDR* )&client_addr, &addr_len );
-            if( INVALID_SOCKET == cli_info->client_sock )
+            session->client_socket = accept( _listen_sock, ( SOCKADDR* )&client_addr, &addr_len );
+            if( INVALID_SOCKET == session->client_socket )
             {
-                delete cli_info;
+                delete session;
                 continue;
             }
             LOG_I( "Wait for accept...ok" );
 
-            {
-                auto ret = CreateIoCompletionPort( ( HANDLE )cli_info->client_sock,
-                                                   _iocp_handle,
-                                                   ( ULONG_PTR )cli_info,
-                                                   0 );
+            auto ret = CreateIoCompletionPort( ( HANDLE )session->client_socket,
+                                                _iocp_handle,
+                                                (ULONG_PTR)session ,
+                                                0 );
 
-                if( NULL == ret || _iocp_handle != ret )
-                {
-                    LOG_E( "CreateIoCompletionPort failed. {}", GetLastError() );
-                    delete cli_info;
-                    continue;
-                }
+            if( NULL == ret || _iocp_handle != ret )
+            {
+                LOG_E( "CreateIoCompletionPort failed. {}", GetLastError() );
+                delete session;
+                continue;
             }
 
+            if( RecvData( session, &in_buffer ) )
             {
-                DWORD flag = 0, recv_size = 0;
-                cli_info->in.overlapped_buffer.len = 1024;
-                cli_info->in.overlapped_buffer.buf = cli_info->in.data_buffer;
-                cli_info->in.direction = PacketDirection::PACKET_DIRECTION_IN;
-
-                auto ret = WSARecv( cli_info->client_sock,
-                                    &cli_info->in.overlapped_buffer,
-                                    1,
-                                    &recv_size,
-                                    &flag,
-                                    ( LPWSAOVERLAPPED )&cli_info->in,
-                                    NULL );
-                if( SOCKET_ERROR == ret && WSAGetLastError() != ERROR_IO_PENDING )
-                {
-                    LOG_E( "WSARecv failed. {}", WSAGetLastError() )
-                    continue;
-                }
-
                 char ip[ 32 ] = { 0, };
                 inet_ntop( AF_INET, &client_addr.sin_addr, ip, sizeof( ip ) - 1 );
                 LOG_I( "connected ip : {}", ip );
-
-                _client_infos.push_back( cli_info );
+                _clients.push_back( session );
+            }
+            else
+            {
+                LOG_E( "connect failed" );
             }
         }
     }
@@ -182,7 +213,7 @@ public:
     {
         while( _worker_run )
         {
-            ClientInfo* cli_info = nullptr;
+            client_session* session = nullptr;
             DWORD io_size = 0;
             LPOVERLAPPED lpoverlapped = nullptr;
 
@@ -191,7 +222,7 @@ public:
                 LOG_I( "Checking CompletionPort..." );
                 BOOL ret = GetQueuedCompletionStatus( _iocp_handle,
                                                       &io_size,
-                                                      ( PULONG_PTR )&cli_info,
+                                                      ( PULONG_PTR )&session,
                                                       &lpoverlapped,
                                                       INFINITE );
                 LOG_I( "Checking CompletionPort...ok" );
@@ -209,39 +240,47 @@ public:
                 if( FALSE == ret || ( 0 == io_size && TRUE == ret ) )
                 {
                     LOG_E( "Close Connection!" );
-                    CloseConnection( cli_info );
-
+                    CloseConnection( session );
                 }
 
-                OverlappedEx* overlappedex = ( OverlappedEx* )lpoverlapped;
+                IOCPBuffer* buffer = ( IOCPBuffer* )lpoverlapped;
 
-                if( PacketDirection::PACKET_DIRECTION_IN == overlappedex->direction )
+                if( buffer->CompareDirection( Direction::PacketDirection_Recv ) )
                 {
-                    overlappedex->data_buffer[ io_size ] = '\0';
-                    LOG_I( "Recved Message : {}", overlappedex->data_buffer );
-
+                    buffer->Buffer()[ io_size ] = '\0';
+                    LOG_I( "Recved Message : {}", buffer->Buffer() );
+                    if( RecvData( session, buffer ) )
                     {
-                        DWORD flag = 0, recv_size = 0;
-                        cli_info->in.overlapped_buffer.len = 1024;
-                        cli_info->in.overlapped_buffer.buf = cli_info->in.data_buffer;
-                        cli_info->in.direction = PacketDirection::PACKET_DIRECTION_IN;
-
-                        auto ret = WSARecv( cli_info->client_sock,
-                                            &cli_info->in.overlapped_buffer,
-                                            1,
-                                            &recv_size,
-                                            &flag,
-                                            ( LPWSAOVERLAPPED )&cli_info->in,
-                                            NULL );
-                        if( SOCKET_ERROR == ret && WSAGetLastError() != ERROR_IO_PENDING )
-                        {
-                            LOG_E( "WSARecv failed. {}", WSAGetLastError() );
-                            continue;
-                        }
+                        LOG_I( "Recv Success" );
                     }
                 }
+
+                std::this_thread::sleep_for( std::chrono::milliseconds( 300 ) );
             }
         }
+    }
+
+    bool RecvData( client_session* session, IOCPBuffer* buffer )
+    {
+        DWORD flag = 0, recv_size = 0;
+        buffer->WsaBuf().len = IOCP_BUFFER_SIZE;
+        buffer->WsaBuf().buf = buffer->Buffer();
+        buffer->SetDirection( Direction::PacketDirection_Recv );
+
+        auto ret = WSARecv( session->client_socket,
+                            &buffer->WsaBuf(),
+                            1,
+                            &recv_size,
+                            &flag,
+                            ( LPWSAOVERLAPPED )buffer,
+                            NULL );
+        if( SOCKET_ERROR == ret && WSAGetLastError() != ERROR_IO_PENDING )
+        {
+            LOG_E( "WSARecv failed. {}", WSAGetLastError() );
+            return false;
+        }
+
+        return true;
     }
 
     bool StopServer()
@@ -262,13 +301,13 @@ public:
         return true;
     }
 
-    void CloseConnection( ClientInfo* cli_info )
+    void CloseConnection( client_session* cli_info )
     {
         struct linger lg = { 0, 0 }; // SO_DONTLINGER
 
-        shutdown( cli_info->client_sock, SD_BOTH );
-        setsockopt( cli_info->client_sock, SOL_SOCKET, SO_LINGER, ( char* )&lg, sizeof( lg ) );
-        closesocket( cli_info->client_sock );
+        shutdown( cli_info->client_socket, SD_BOTH );
+        setsockopt( cli_info->client_socket, SOL_SOCKET, SO_LINGER, ( char* )&lg, sizeof( lg ) );
+        closesocket( cli_info->client_socket );
         // client_infos 에서 삭제
     }
 
@@ -279,7 +318,7 @@ private:
     HANDLE _iocp_handle = INVALID_HANDLE_VALUE;
     DWORD _worker_thread_amount = 0;
 
-    std::vector< ClientInfo* > _client_infos;
+    std::vector< client_session* > _clients;
 
     std::thread _accept_thread;
     std::vector<std::thread> _worker_threads;
@@ -293,7 +332,7 @@ int main()
 {
     LOGGER().Initialize( { true, true, 1024 * 1024 * 10, 10, "logs/test.log", "debug", "debug" } );
 
-    IOCPServer server( std::string( "127.0.0.1" ), 10010, 1 );
+    IOCPServer server( std::string( "127.0.0.1" ), 10010, 4 );
     server.InitServer();
     server.BindSocket();
     server.ListenSocket();
