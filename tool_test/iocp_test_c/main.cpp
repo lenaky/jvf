@@ -50,8 +50,9 @@ public:
         }
 
         SOCKADDR_IN server;
-        server.sin_port = htons( _port );
         inet_pton( AF_INET, _dest_ip.c_str(), &server.sin_addr );
+        server.sin_family = AF_INET;
+        server.sin_port = htons( _port );
         auto ret = connect( _socket, ( SOCKADDR* )&server, sizeof( server ) );
         if( SOCKET_ERROR == ret )
         {
@@ -112,7 +113,7 @@ int main()
 {
     LOGGER().Initialize( { true, true, 1024 * 1024 * 10, 10, "logs/test.log", "debug", "debug" } );
 
-    SocketClient sc( std::string( "192.168.0.17" ), 10010 );
+    SocketClient sc( std::string( "127.0.0.1" ), 10010 );
     sc.InitClient();
     sc.ConnectToServer();
     sc.StartToSendThread();
