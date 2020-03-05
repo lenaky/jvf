@@ -68,6 +68,7 @@ namespace JVF
                 }
 
                 _logger = new spdlog::logger( "multi_sink", sinks_list.begin(), sinks_list.end() );
+                _logger->set_level( spdlog::level::level_enum::debug );
 
             }
             catch( const spdlog::spdlog_ex & ex )
@@ -85,8 +86,8 @@ namespace JVF
 #define LOGGER() JVF::Logger::GetInstance()
 
 #define LOG_T(fmt, ...) if (nullptr != LOGGER().GetLogger()) { LOGGER().GetLogger()->trace("[{}@{}] "##fmt, __FUNCTION__, __LINE__, __VA_ARGS__); } 
-#define LOG_I(fmt, ...) if (nullptr != LOGGER().GetLogger()) { LOGGER().GetLogger()->info("[{}@{}] "##fmt, __FUNCTION__, __LINE__, __VA_ARGS__); } 
 #define LOG_D(fmt, ...) if (nullptr != LOGGER().GetLogger()) { LOGGER().GetLogger()->debug("[{}@{}] "##fmt, __FUNCTION__, __LINE__, __VA_ARGS__); } 
+#define LOG_I(fmt, ...) if (nullptr != LOGGER().GetLogger()) { LOGGER().GetLogger()->info("[{}@{}] "##fmt, __FUNCTION__, __LINE__, __VA_ARGS__); } 
 #define LOG_W(fmt, ...) if (nullptr != LOGGER().GetLogger()) { LOGGER().GetLogger()->warn("[{}@{}] "##fmt, __FUNCTION__, __LINE__, __VA_ARGS__); } 
 #define LOG_E(fmt, ...) if (nullptr != LOGGER().GetLogger()) { LOGGER().GetLogger()->error("[{}@{}] "##fmt, __FUNCTION__, __LINE__, __VA_ARGS__); } 
 #define LOG_C(fmt, ...) if (nullptr != LOGGER().GetLogger()) { LOGGER().GetLogger()->critical("[{}@{}] "##fmt, __FUNCTION__, __LINE__, __VA_ARGS__); } 

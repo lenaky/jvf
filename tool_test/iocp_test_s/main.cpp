@@ -1,5 +1,8 @@
 #include "util/spdlog_wrap.h"
 
+#include "simplechat_client.pb.h"
+#include "simplechat_server.pb.h"
+
 #ifdef _DEBUG
 #pragma comment(lib, "libprotobufd.lib")
 #else
@@ -247,8 +250,23 @@ public:
 
                 if( buffer->CompareDirection( Direction::PacketDirection_Recv ) )
                 {
-                    buffer->Buffer()[ io_size ] = '\0';
-                    LOG_I( "Recved Message : {}", buffer->Buffer() );
+                    //
+                    int payload_size = 0;
+                    memcpy( &payload_size, buffer->Buffer(), sizeof( int ) );
+                    payload_size = ntohl( payload_size );
+                    int msg_id = 0;
+                    memcpy( &msg_id, buffer->Buffer() + sizeof( int ), sizeof( int ) );
+                    msg_id = ntohl( msg_id );
+
+                    LOG_D( "payload size = {}, msg_id = {}", payload_size, msg_id );
+
+                    if( msg_id == 0 )
+                    {
+                        chat::chat_login_req req;
+                        req.ParseFromArray( buffer->Buffer() + sizeof( int ) + sizeof( int ), payload_size - sizeof( int ) );
+                        LOG_D( "req ==>>> {} ", req.DebugString() );
+                    }
+
                     if( RecvData( session, buffer ) )
                     {
                         LOG_I( "Recv Success" );

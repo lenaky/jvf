@@ -1,6 +1,15 @@
 #include "util/spdlog_wrap.h"
 #include <string>
 
+#include "simplechat_client.pb.h"
+#include "simplechat_server.pb.h"
+
+#ifdef _DEBUG
+#pragma comment(lib, "libprotobufd.lib")
+#else
+#pragma comment(lib, "libprotobuf.lib")
+#endif
+
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <winsock2.h>
@@ -65,40 +74,7 @@ public:
         LOG_I( "connect to server success" );
     }
 
-    void StartToSendThread()
-    {
-        _send_thread = std::thread( [ this ](){
-            Worker();
-        } );
-    }
-
-    void StopClient()
-    {
-        _send_thread_run = false;
-        if( _send_thread.joinable() )
-        {
-            _send_thread.join();
-        }
-    }
-
-    void Worker()
-    {
-        std::string send_msg( "this is dummy message" );
-
-        while( _send_thread_run )
-        {
-            auto ret = send( _socket, send_msg.c_str(), send_msg.size(), 0 );
-            if( SOCKET_ERROR == ret )
-            {
-                LOG_E( "Send failed." );
-            }
-            else
-            {
-                LOG_I( "Send Success." );
-            }
-            std::this_thread::sleep_for( std::chrono::milliseconds( 1000 ) );
-        }
-    }
+    SOCKET GetSocket() const { return _socket; }
 
 private:
     std::string _dest_ip;
@@ -109,18 +85,108 @@ private:
     std::thread _send_thread;
 };
 
+void ParseString( std::string const& org, std::string const& delim, std::vector<std::string>& parsed )
+{
+    std::string s = org;
+    size_t pos = 0;
+    std::string token;
+    while( ( pos = s.find( delim ) ) != std::string::npos )
+    {
+        token = s.substr( 0, pos );
+        s.erase( 0, pos + delim.length() );
+        parsed.push_back( token );
+    }
+
+    if( 0 < s.size() )
+    {
+        parsed.push_back( s );
+    }
+}
+
+char* g_send_buffer = nullptr;
+size_t g_send_buffer_size = 0;
+
+void CheckAlloc( int size )
+{
+    if( nullptr == g_send_buffer )
+    {
+        g_send_buffer_size = size;
+        g_send_buffer = new char[ size ];
+    }
+    else if( size > g_send_buffer_size )
+    {
+        delete[]g_send_buffer;
+        g_send_buffer_size = size;
+        g_send_buffer = new char[ size ];
+    }
+}
+
+void SendCommand( SocketClient& sc, std::vector<std::string> const& cmds )
+{
+    if( cmds.size() <= 1 )
+    {
+        LOG_E( "wierd. size={}", cmds.size() );
+        return;
+    }
+
+    if( 0 == cmds[ 0 ].compare( "login" ) )
+    {
+        chat::chat_login_req req;
+        req.set_id( "jayjay" );
+        req.set_pw( "hello" );
+
+        // packet size / msg id / msg body
+
+        int packet_number = htonl( req.GetDescriptor()->index() );        
+        unsigned int packet_size = sizeof( int )/*packet size*/ + sizeof( int )/*packet number*/ + req.ByteSizeLong();
+        CheckAlloc( packet_size );
+
+        unsigned int payload_size = sizeof( int ) + req.ByteSizeLong();
+        memcpy( g_send_buffer, &payload_size, sizeof( int ) );
+        memcpy( g_send_buffer + sizeof( int ), &packet_number, sizeof( int ) );
+        auto ret = req.SerializeToArray( g_send_buffer + sizeof( int ) + sizeof( int ), req.ByteSizeLong() );
+        if( false == ret )
+        {
+            LOG_E( "Failed Serialization" );
+            return;
+        }
+
+        auto send_result = send( sc.GetSocket(), g_send_buffer, packet_size, 0 );
+        LOG_D( "Send. {} bytes", send_result );
+    }
+    else if( 0 == cmds[ 0 ].compare( "create" ) )
+    {
+        chat::chat_create_req req;
+        auto ids = req.add_ids();
+        int packet_number = htonl( req.GetDescriptor()->index() );
+
+    }
+    else if( 0 == cmds[ 0 ].compare( "message" ) )
+    {
+        chat::chat_message_req req;
+        int packet_number = htonl( req.GetDescriptor()->index() );
+
+    }
+}
+
 int main()
 {
+    using namespace std::string_literals;
     LOGGER().Initialize( { true, true, 1024 * 1024 * 10, 10, "logs/test.log", "debug", "debug" } );
 
     SocketClient sc( std::string( "127.0.0.1" ), 10010 );
     sc.InitClient();
     sc.ConnectToServer();
-    sc.StartToSendThread();
 
-    int i = 0;
-    std::cin >> i;
+    while( true )
+    {
+        LOG_D( "Reday to send...");
+        std::string message;
+        std::getline( std::cin, message );
+        std::vector<std::string> cmds;
+        ParseString( message, " "s, cmds );
+        SendCommand( sc, cmds );
+    }
 
-    sc.StopClient();
     return 0;
 }
