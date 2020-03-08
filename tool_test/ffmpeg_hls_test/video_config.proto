@@ -1,0 +1,41 @@
+syntax = "proto2";
+
+package jvf;
+
+message src_video_auth
+{
+    optional string id = 1;
+    optional string pwd = 2;
+};
+
+message src_video_config
+{
+    required int32 type = 1;
+    optional src_video_auth auth = 2;
+    required string src_name = 3;
+};
+
+message dst_video_config
+{
+    required string name = 1;
+    required string codec = 2;
+    required string bitrate = 3;
+    required string profile = 4;
+    optional string scale = 6;
+    optional int32 crf = 7;
+    required int32 gop = 8;
+    optional string m3u8 = 9;
+};
+
+message dst_video_global
+{
+    required string out_path = 1;
+    required string video_master_m3u8 = 2;
+    repeated dst_video_config video = 3; 
+}
+
+message video_config
+{
+    optional src_video_config src = 1;
+    optional dst_video_global dst = 2;
+};

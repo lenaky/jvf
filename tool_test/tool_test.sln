@@ -13,6 +13,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "iocp_test_s", "iocp_test_s\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "iocp_test_c", "iocp_test_c\iocp_test_c.vcxproj", "{3E7DF889-6500-4A0F-9A14-6BE78AAA0C9A}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ffmpeg_hls_test", "ffmpeg_hls_test\ffmpeg_hls_test.vcxproj", "{56DDCC78-46C2-49DF-BC7A-847C98513825}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -51,6 +53,12 @@ Global
 		{3E7DF889-6500-4A0F-9A14-6BE78AAA0C9A}.Release|x64.ActiveCfg = Release|x64
 		{3E7DF889-6500-4A0F-9A14-6BE78AAA0C9A}.Release|x64.Build.0 = Release|x64
 		{3E7DF889-6500-4A0F-9A14-6BE78AAA0C9A}.Release|x86.ActiveCfg = Release|x64
+		{56DDCC78-46C2-49DF-BC7A-847C98513825}.Debug|x64.ActiveCfg = Debug|x64
+		{56DDCC78-46C2-49DF-BC7A-847C98513825}.Debug|x64.Build.0 = Debug|x64
+		{56DDCC78-46C2-49DF-BC7A-847C98513825}.Debug|x86.ActiveCfg = Debug|x64
+		{56DDCC78-46C2-49DF-BC7A-847C98513825}.Release|x64.ActiveCfg = Release|x64
+		{56DDCC78-46C2-49DF-BC7A-847C98513825}.Release|x64.Build.0 = Release|x64
+		{56DDCC78-46C2-49DF-BC7A-847C98513825}.Release|x86.ActiveCfg = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

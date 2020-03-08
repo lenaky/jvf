@@ -1,0 +1,35 @@
+{
+    "src" : {
+        "type" : 0,
+        "auth" : {
+            "id" : "",
+            "pwd" : ""
+        },
+        "src_name" : "./source.mp4",
+        "description" : "type 0 : file, 1 : rtsp, 2 : rtmp"
+    },
+    "dst" : {
+        "out_path" : "./",
+        "video_master_m3u8" : "master.m3u8",
+        "video" : [
+            {
+                "name" : "MEDIUM",
+                "codec" : "libx264",
+                "bitrate" : "670K",
+                "profile" : "baseline",
+                "scale" : "300:-1",
+                "gop" : 30,
+                "m3u8" : "playlist.m3u8"
+            },
+            {
+                "name" : "HIGH",
+                "codec" : "libx264",
+                "bitrate" : "1000K",
+                "profile" : "baseline",
+                "scale" : "300:-1",
+                "gop" : 30,
+                "m3u8" : "playlist.m3u8"
+            }
+        ]
+    }
+}
