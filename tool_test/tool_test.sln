@@ -15,6 +15,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "iocp_test_c", "iocp_test_c\
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ffmpeg_hls_test", "ffmpeg_hls_test\ffmpeg_hls_test.vcxproj", "{56DDCC78-46C2-49DF-BC7A-847C98513825}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ffmpeg_decode_test", "ffmpeg_decode_test\ffmpeg_decode_test.vcxproj", "{C3C8BD1E-8B33-4669-B7FF-EC0761C5F6B4}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ffmpeg_muxer_test", "ffmpeg_muxer_test\ffmpeg_muxer_test.vcxproj", "{B82C146C-3714-4DAB-8D5E-5292BA047689}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -59,6 +63,18 @@ Global
 		{56DDCC78-46C2-49DF-BC7A-847C98513825}.Release|x64.ActiveCfg = Release|x64
 		{56DDCC78-46C2-49DF-BC7A-847C98513825}.Release|x64.Build.0 = Release|x64
 		{56DDCC78-46C2-49DF-BC7A-847C98513825}.Release|x86.ActiveCfg = Release|x64
+		{C3C8BD1E-8B33-4669-B7FF-EC0761C5F6B4}.Debug|x64.ActiveCfg = Debug|x64
+		{C3C8BD1E-8B33-4669-B7FF-EC0761C5F6B4}.Debug|x64.Build.0 = Debug|x64
+		{C3C8BD1E-8B33-4669-B7FF-EC0761C5F6B4}.Debug|x86.ActiveCfg = Debug|x64
+		{C3C8BD1E-8B33-4669-B7FF-EC0761C5F6B4}.Release|x64.ActiveCfg = Release|x64
+		{C3C8BD1E-8B33-4669-B7FF-EC0761C5F6B4}.Release|x64.Build.0 = Release|x64
+		{C3C8BD1E-8B33-4669-B7FF-EC0761C5F6B4}.Release|x86.ActiveCfg = Release|x64
+		{B82C146C-3714-4DAB-8D5E-5292BA047689}.Debug|x64.ActiveCfg = Debug|x64
+		{B82C146C-3714-4DAB-8D5E-5292BA047689}.Debug|x64.Build.0 = Debug|x64
+		{B82C146C-3714-4DAB-8D5E-5292BA047689}.Debug|x86.ActiveCfg = Debug|x64
+		{B82C146C-3714-4DAB-8D5E-5292BA047689}.Release|x64.ActiveCfg = Release|x64
+		{B82C146C-3714-4DAB-8D5E-5292BA047689}.Release|x64.Build.0 = Release|x64
+		{B82C146C-3714-4DAB-8D5E-5292BA047689}.Release|x86.ActiveCfg = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

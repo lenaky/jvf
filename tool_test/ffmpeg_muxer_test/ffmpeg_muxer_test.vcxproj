@@ -12,8 +12,8 @@
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
-    <ProjectGuid>{56DDCC78-46C2-49DF-BC7A-847C98513825}</ProjectGuid>
-    <RootNamespace>ffmpeghlstest</RootNamespace>
+    <ProjectGuid>{B82C146C-3714-4DAB-8D5E-5292BA047689}</ProjectGuid>
+    <RootNamespace>ffmpegmuxertest</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -56,7 +56,6 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -71,7 +70,6 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -81,25 +79,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\external_libs\pb2json\pbjson.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="video_config.pb.cc" />
-  </ItemGroup>
-  <ItemGroup>
-    <CustomBuild Include="video_config.proto">
-      <FileType>Document</FileType>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">"$(ProjectDir)../../external_libs/protoc/bin/protoc.exe" -I=$(ProjectDir) --cpp_out=$(ProjectDir) $(ProjectDir)video_config.proto</Command>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">"$(ProjectDir)../../external_libs/protoc/bin/protoc.exe" -I=$(ProjectDir) --cpp_out=$(ProjectDir) $(ProjectDir)video_config.proto</Command>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">%(Filename).pb.h;%(Filename).pb.cc;</Outputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">%(Filename).pb.h;%(Filename).pb.cc;</Outputs>
-    </CustomBuild>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="..\..\external_libs\pb2json\pbjson.hpp" />
-    <ClInclude Include="video_config.pb.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="config.json" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

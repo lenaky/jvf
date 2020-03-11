@@ -5,8 +5,9 @@
             "id" : "",
             "pwd" : ""
         },
-        "src_name" : "./source.mp4",
-        "description" : "type 0 : file, 1 : rtsp, 2 : rtmp"
+      "src_name": "./source.mp4",
+      "src_codec" : "libx264",
+      "description" : "type 0 : file, 1 : rtsp, 2 : rtmp"
     },
     "dst" : {
         "out_path" : "./",

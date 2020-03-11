@@ -34,9 +34,13 @@ namespace FFMPEG
     {
         ErrorNone = 0,
         ErrorAllocContextFailed = 0x10000000,
-        ErrorOpenFailed         = 0x20000000,
-        ErrorFindStreamFailed   = 0x30000000,
-        ErrorNoVideoStream      = 0x40000000,
+        ErrorOpenFailed = 0x20000000,
+        ErrorFindStreamFailed = 0x30000000,
+        ErrorNoVideoStream = 0x40000000,
+        ErrorCodecOpenFailed = 0x50000000,
+        ErrorCanNotFindCodec = 0x60000000,
+        ErrorAllocContext = 0x70000000,
+        ErrorParamToContext = 0x80000000,
     };
 
     using FError = FFMPEG::FFMPEG_Error_Type;
@@ -57,8 +61,6 @@ namespace FFMPEG
                 return ErrorAllocContextFailed;
             }
 
-
-            //open RTSP
             if( 0 > avformat_open_input( &_fmt_ctx, _config.mutable_src()->src_name().c_str(), NULL, NULL ) )
             {
                 LOG_E( "open input failed" );
@@ -86,12 +88,54 @@ namespace FFMPEG
                 return ErrorNoVideoStream;
             }
 
+            for( int i = 0; i < _fmt_ctx->nb_streams; i++ )
+            {
+                AVStream* stream = _fmt_ctx->streams[ i ];
+                AVCodec* dec = avcodec_find_decoder( stream->codecpar->codec_id );
+                if( !dec )
+                {
+                    LOG_E( "Failed to find decoder for stream {}", i );
+                    return ErrorCanNotFindCodec;
+                }
+                AVCodecContext* codec_ctx = avcodec_alloc_context3( dec );
+                if( !codec_ctx )
+                {
+                    LOG_E( "Failed to allocate the decoder context for stream {}", i );
+                    return ErrorAllocContext;
+                }
+                auto ret = avcodec_parameters_to_context( codec_ctx, stream->codecpar );
+                if( ret < 0 )
+                {
+                    LOG_E( "Failed to copy decoder parameters to input decoder context. {}", i );
+                    return ErrorParamToContext;
+                }
+                /* Reencode video & audio and remux subtitles etc. */
+                if( codec_ctx->codec_type == AVMEDIA_TYPE_VIDEO
+                    || codec_ctx->codec_type == AVMEDIA_TYPE_AUDIO )
+                {
+                    if( codec_ctx->codec_type == AVMEDIA_TYPE_VIDEO )
+                        codec_ctx->framerate = av_guess_frame_rate( _fmt_ctx, stream, NULL );
+                    /* Open decoder */
+                    ret = avcodec_open2( codec_ctx, dec, NULL );
+                    if( ret < 0 )
+                    {
+                        LOG_E( "Failed to open decoder for stream {}", i );
+                        return ErrorCodecOpenFailed;
+                    }
+                }
+                if( codec_ctx->codec_type == AVMEDIA_TYPE_VIDEO )
+                    _v_decode_codec_ctx = codec_ctx;
+                else _a_decode_codec_ctx = codec_ctx;
+            }
+
             return ErrorNone;
         }
 
 
     private:
         AVFormatContext* _fmt_ctx = nullptr;
+        AVCodecContext* _v_decode_codec_ctx = nullptr;
+        AVCodecContext* _a_decode_codec_ctx = nullptr;
         jvf::video_config _config;
         unsigned int _video_stream_index = -1;
         unsigned int _audio_stream_index = -1;
@@ -131,7 +175,7 @@ int main( void )
     }
 
     LOG_I( "load success. {}", conf.DebugString() );
-    
+
     FFMPEG::FormatContext ctx( conf );
     auto i = ctx.OpenStream();
     LOG_D( "Open Stream. {}", i );
